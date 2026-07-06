@@ -26,7 +26,7 @@ rendered as a single WebGL layer, gliding smoothly across a dark world map at
 | State | Jotai |
 | Styling | TailwindCSS |
 | Map | MapLibre GL JS + OpenFreeMap dark tiles |
-| Data | airplanes.live ADS-B API |
+| Data | adsb.lol / adsb.fi ADS-B APIs via cached proxy |
 | Virtualized list | TanStack Virtual |
 
 ## Architecture
@@ -34,6 +34,7 @@ rendered as a single WebGL layer, gliding smoothly across a dark world map at
 ```
 app/
   page.tsx                 main view (map + panels)
+  api/adsb/route.ts        CDN-cached proxy to the ADS-B aggregators
 components/
   Map/FlightMap.tsx        MapLibre lifecycle wrapper (renders one div, never re-renders on data)
   Map/AircraftLayer.ts     GeoJSON source mgmt + rAF interpolation loop (no React)
@@ -61,15 +62,20 @@ datacenter vantage points), and even its authenticated free tier (4,000
 credits/day at 4 credits per global query) can only sustain ~2.8 hours of 10s
 polling per day — nowhere near an always-on public site.
 
-Hypersky instead uses [airplanes.live](https://airplanes.live/), a community
-ADS-B aggregator with an open-CORS, keyless API. Every visitor's **browser
-fetches directly** — there is no backend, no shared quota, and the app deploys
-as a fully static site. The trade-off: queries are point+radius (max 250 nm),
-so the feed follows the map viewport instead of snapshotting the planet. The
-poller derives its query from the current bounds, refetches promptly after the
-map settles somewhere new, and stays well under the API's rate limit with a
-global fetch-spacing guard (the limiter imposes a 60s lockout whose 429s carry
-no CORS headers, so the client backs off blind in steps sized to clear it).
+Hypersky instead uses the community ADS-B aggregators
+[adsb.lol](https://adsb.lol/) (with [adsb.fi](https://adsb.fi/) as automatic
+fallback) through a small same-origin proxy route. The aggregators don't send
+CORS headers and meter direct browser calls hard, so the browser polls
+`/api/adsb` instead; the route's `s-maxage=8` cache headers mean Vercel's CDN
+answers most polls, and the client rounds its query coordinates so visitors
+looking at the same area share one cache entry — each area costs roughly one
+upstream request per 8s window regardless of visitor count.
+
+The trade-off: aggregator queries are point+radius (max 250 nm), so the feed
+follows the map viewport instead of snapshotting the planet. The poller
+derives its query from the current bounds, refetches promptly after the map
+settles somewhere new, and keeps a global fetch-spacing guard so remounts and
+rapid panning can't burst-fire requests.
 
 ### Data flow
 
@@ -79,7 +85,7 @@ no CORS headers, so the client backs off blind in steps sized to clear it).
    aircraft updated, new ones added, anything unseen for 60s expired.
 3. The same poll publishes a snapshot to `aircraftMapAtom`; derived atoms
    (visible set, filtered list, counts, selected aircraft) recompute from there.
-4. On failure: exponential backoff (30s → 120s), the map keeps extrapolating
+4. On failure: exponential backoff (15s → 120s), the map keeps extrapolating
    from last known state, and the stats bar shows the degraded feed status.
 
 ## Performance decisions
@@ -137,12 +143,14 @@ Open [http://localhost:3000](http://localhost:3000). No API keys required.
 
 ## Deploying
 
-Zero-config on [Vercel](https://vercel.com): import the repo and deploy. The
-app is fully static — all live data is fetched by the visitor's browser.
+Zero-config on [Vercel](https://vercel.com): import the repo and deploy — no
+API keys or environment variables. The `/api/adsb` route's CDN cache headers
+keep upstream usage constant no matter how many visitors the site gets.
 
 ## Data attribution
 
-Live aircraft data from [airplanes.live](https://airplanes.live/)
-(free for non-commercial use). Basemap © [OpenFreeMap](https://openfreemap.org/),
+Live aircraft data from [adsb.lol](https://adsb.lol/) and
+[adsb.fi](https://adsb.fi/) (free for non-commercial use).
+Basemap © [OpenFreeMap](https://openfreemap.org/),
 © [OpenMapTiles](https://openmaptiles.org/), data ©
 [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors.
