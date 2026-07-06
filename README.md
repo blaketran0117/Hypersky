@@ -7,6 +7,7 @@ rendered as a single WebGL layer, gliding smoothly across a dark world map at
 60fps. 
 
 
+![Hypersky live traffic console over central Europe](docs/screenshot.png)
 
 ## Features
 
