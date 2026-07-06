@@ -6,7 +6,7 @@ Hypersky is a real-time flight tracking console: hundreds of live aircraft
 rendered as a single WebGL layer, gliding smoothly across a dark world map at
 60fps. No login, no ads, no API keys — open the URL, see the sky.
 
-> 📸 _Screenshot placeholder — add `docs/screenshot.png` after deploying._
+
 
 ## Features
 
