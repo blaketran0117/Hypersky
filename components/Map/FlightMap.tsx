@@ -4,12 +4,18 @@ import { useEffect, useRef } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { setMapController } from "@/lib/store";
+import { pokeFeed } from "@/lib/feed";
+import { setLiveViewport, setMapController } from "@/lib/store";
 import { selectedIcaoAtom, viewportAtom } from "@/state/atoms";
 import { AircraftLayer } from "./AircraftLayer";
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
 const VIEWPORT_THROTTLE_MS = 200;
+
+// Start over the Benelux/Rhine corridor: LHR, CDG, AMS and FRA all sit inside
+// one 250 nm feed query, so first paint is dense with traffic.
+const INITIAL_CENTER: [number, number] = [4.9, 50.1];
+const INITIAL_ZOOM = 5.6;
 
 /**
  * MapLibre lifecycle wrapper. The map and the aircraft swarm live entirely in
@@ -33,11 +39,11 @@ export default function FlightMap() {
       map = new maplibregl.Map({
         container: containerRef.current,
         style: STYLE_URL,
-        center: [-30, 40],
-        zoom: 2.4,
+        center: INITIAL_CENTER,
+        zoom: INITIAL_ZOOM,
         minZoom: 1,
         maxZoom: 13,
-        attributionControl: { compact: true },
+        attributionControl: { compact: true, customAttribution: "Data: adsb.lol / adsb.fi" },
       });
 
       // The basemap style occasionally references sprite icons it doesn't ship
@@ -51,13 +57,15 @@ export default function FlightMap() {
       const pushViewport = () => {
         if (!map) return;
         const b = map.getBounds();
-        setViewport({
+        const v = {
           west: b.getWest(),
           south: b.getSouth(),
           east: b.getEast(),
           north: b.getNorth(),
           zoom: map.getZoom(),
-        });
+        };
+        setLiveViewport(v);
+        setViewport(v);
       };
 
       map.on("move", () => {
@@ -66,7 +74,11 @@ export default function FlightMap() {
         lastViewportPush = now;
         pushViewport();
       });
-      map.on("moveend", pushViewport);
+      map.on("moveend", () => {
+        pushViewport();
+        // The feed is viewport-scoped: ask it to cover the new area promptly.
+        pokeFeed();
+      });
 
       map.on("load", () => {
         if (cancelled || !map) return;

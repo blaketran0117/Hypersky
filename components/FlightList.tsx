@@ -72,7 +72,9 @@ export default function FlightList() {
                 <div className="flex items-baseline justify-between font-mono text-[11px] tabular-nums text-slate-400">
                   <span>{formatAltitude(a.baroAltitude ?? a.geoAltitude)}</span>
                   <span>{formatSpeed(a.velocity)}</span>
-                  <span className="max-w-24 truncate text-slate-500">{a.originCountry}</span>
+                  <span className="max-w-24 truncate text-slate-500">
+                    {a.typeCode ?? a.registration ?? "—"}
+                  </span>
                 </div>
               </button>
             );

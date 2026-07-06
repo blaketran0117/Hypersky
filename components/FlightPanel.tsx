@@ -41,7 +41,11 @@ export default function FlightPanel() {
           <div className="font-mono text-lg font-semibold tracking-wider text-slate-50">
             {aircraft.callsign ?? aircraft.icao24.toUpperCase()}
           </div>
-          <div className="mt-0.5 text-xs text-slate-400">{aircraft.originCountry}</div>
+          <div className="mt-0.5 text-xs text-slate-400">
+            {[aircraft.typeCode, aircraft.registration, aircraft.originCountry]
+              .filter(Boolean)
+              .join(" · ") || "—"}
+          </div>
         </div>
         <Button aria-label="Close flight details" onClick={() => setSelected(null)}>
           ✕

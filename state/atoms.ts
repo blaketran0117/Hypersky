@@ -53,7 +53,9 @@ export const filteredListAtom = atom<AircraftState[]>((get) => {
         (a) =>
           (a.callsign !== null && a.callsign.toUpperCase().includes(query)) ||
           a.icao24.toUpperCase().includes(query) ||
-          a.originCountry.toUpperCase().includes(query),
+          (a.registration !== null && a.registration.toUpperCase().includes(query)) ||
+          (a.typeCode !== null && a.typeCode.toUpperCase().includes(query)) ||
+          (a.originCountry !== null && a.originCountry.toUpperCase().includes(query)),
       )
     : visible;
   return [...matches].sort((a, b) => {

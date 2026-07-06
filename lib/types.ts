@@ -1,15 +1,19 @@
 /** Altitude band used for icon colouring: amber = ground, cyan = low/climbing, white = cruise. */
 export type AltitudeBand = "ground" | "low" | "cruise";
 
-/** Normalised state for a single aircraft, merged across polls. */
+/** Normalised state for a single aircraft, merged across polls. Metric units throughout. */
 export interface AircraftState {
   icao24: string;
   callsign: string | null;
-  originCountry: string;
+  registration: string | null;
+  /** ICAO type designator, e.g. "A320", "B738". */
+  typeCode: string | null;
+  /** Country of registration derived from the ICAO address block, when known. */
+  originCountry: string | null;
   /** Last reported longitude/latitude (degrees). */
   lon: number;
   lat: number;
-  /** Barometric altitude in metres, null on ground or when unreported. */
+  /** Barometric altitude in metres, 0 on ground, null when unreported. */
   baroAltitude: number | null;
   /** Geometric (GPS) altitude in metres. */
   geoAltitude: number | null;
@@ -20,9 +24,9 @@ export interface AircraftState {
   track: number | null;
   /** Vertical rate in m/s (positive = climbing). */
   verticalRate: number | null;
-  /** Unix seconds of the last position report, from OpenSky. */
+  /** Unix seconds of the last position report. */
   positionTime: number | null;
-  /** Unix seconds of the last message of any kind, from OpenSky. */
+  /** Unix seconds of the last message of any kind. */
   lastContact: number;
   /** Local ms timestamp when this state was ingested — origin for dead reckoning. */
   seenAt: number;
@@ -30,12 +34,6 @@ export interface AircraftState {
   easeFromLon: number;
   easeFromLat: number;
   easeStart: number;
-}
-
-/** Raw OpenSky /states/all response. Each state is a positional array. */
-export interface OpenSkyResponse {
-  time: number;
-  states: (string | number | boolean | null)[][] | null;
 }
 
 export type FeedStatus = "connecting" | "live" | "retrying" | "down";
